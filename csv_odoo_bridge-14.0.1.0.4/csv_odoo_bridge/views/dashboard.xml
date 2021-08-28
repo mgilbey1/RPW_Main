@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2015-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!--"License URL :<https://store.webkul.com/license.html/>" -->
+<openerp>
+	<data>
+		<record id="multi_channel_view_kanban" model="ir.ui.view">
+			<field name="name">multi.channel.sale.kanban</field>
+			<field name="model">multi.channel.sale</field>
+			<field name="inherit_id" ref="odoo_multi_channel_sale.multi_channel_view_kanban"/>
+			<field name="arch" type="xml">
+				<xpath expr="//div[hasclass('o_kanban_card_content')]" position="inside">
+					<div class="o_kanban_primary_left" >
+						<div class="o_primary">
+							<center>
+								<span>
+									<t t-field="record.name.value"/>
+								</span>
+							</center>
+						</div>
+						<div t-if="record.channel.value == 'CSV'" style="color:rgb(162, 70, 137)">
+							<center>
+								<img
+									src="/csv_odoo_bridge/static/src/img/img.png"
+									alt="csv_connector_logo"
+									style="max-width:300px;"
+								/>
+								<h3>
+									<t t-esc="record.name.value"/>
+								</h3>
+							</center>
+						</div>
+					</div>
+				</xpath>
+			</field>
+		</record>
+	</data>
+</openerp>
