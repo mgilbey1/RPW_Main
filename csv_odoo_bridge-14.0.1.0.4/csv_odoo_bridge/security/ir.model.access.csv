@@ -1,8 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-all_header,csv.header.mappings,model_csv_header_mappings,,1,0,0,0
-user_header,csv.header.mappings,model_csv_header_mappings,odoo_multi_channel_sale.group_multi_channel_user,1,1,1,0
-manager_header,csv.header.mappings,model_csv_header_mappings,odoo_multi_channel_sale.group_multi_channel_admin,1,1,1,1
-
-all_import_csv_orders,import.csv.orders,model_import_csv_orders,,1,0,0,0
-user_import_csv_orders,import.csv.orders,model_import_csv_orders,odoo_multi_channel_sale.group_multi_channel_user,1,1,1,0
-manager_import_csv_orders,import.csv.orders,model_import_csv_orders,odoo_multi_channel_sale.group_multi_channel_admin,1,1,1,1
