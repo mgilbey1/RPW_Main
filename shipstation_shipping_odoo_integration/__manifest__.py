@@ -1,6 +1,6 @@
 {
     'name': 'Shipstation Odoo Shipping Connector',
-    'version': '14.15.12.2021',
+    'version': '14.1.15.12.2021',
     'author': "Vraja Technologies",
     'price': 98,
     'currency': 'EUR',
@@ -50,3 +50,4 @@
 # custom changes
 # 14.15.12.2021 John beck custom changes
 # get rate from volume dimension
+# 14.1.15.12.2021 not muliple with quantity

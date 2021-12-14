@@ -97,7 +97,7 @@ class DeliveryCarrier(models.Model):
         length =  self.delivery_package_id and self.delivery_package_id.length or 0.0
         width = self.delivery_package_id and self.delivery_package_id.width or 0.0
         height = self.delivery_package_id and self.delivery_package_id.height or 0.0
-        total_volume = sum([line.product_id.volume *line.product_uom_qty for line in order.order_line if line.product_id.volume])
+        total_volume = sum([line.product_id.volume for line in order.order_line if line.product_id.volume])
         if total_volume:
             height = 1
             width = 2
