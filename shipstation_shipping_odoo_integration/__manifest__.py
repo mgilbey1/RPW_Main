@@ -1,6 +1,6 @@
 {
     'name': 'Shipstation Odoo Shipping Connector',
-    'version': '14.18.02.2021',
+    'version': '14.15.12.2021',
     'author': "Vraja Technologies",
     'price': 98,
     'currency': 'EUR',
@@ -47,3 +47,6 @@
 # 14.21.01.2021 Fix Issue of calculate wrong weight
 # 14.10.02.2021 Fix Issue of Multiple Tracking Number
 # 14.18.02.2021 Custom tracking link depend on carrier code
+# custom changes
+# 14.15.12.2021 John beck custom changes
+# get rate from volume dimension
