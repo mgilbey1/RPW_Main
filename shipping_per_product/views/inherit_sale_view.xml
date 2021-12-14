@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : https://store.webkul.com/license.html/ -->
+
+<odoo>
+    <data>
+        <record id="inherit_view_pre_order_form" model="ir.ui.view">
+            <field name="name">sale.order.form.inherit</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_order_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form/group/group[2]" position="after">
+                    <group>
+                        <field name="delivery_carrier_id" attrs="{'invisible': [('delivery_carrier_id','=', False)]}" readonly="1" force_save="1"/>
+                        <field name="delivery_charge" attrs="{'invisible': [('delivery_carrier_id','=', False)]}" force_save="1"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>
