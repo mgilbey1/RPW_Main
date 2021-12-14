@@ -161,8 +161,6 @@ class StockPicking(models.Model):
             raise ValidationError("{}".format(error_detail))
         self.carrier_tracking_ref =','.join(final_tracking_number)
         self.shipment_cost = shipment_cost
-        line = self.sale_id.mapped('order_line').filtered(lambda line:line.is_delivery==True)
-        line.price_unit = shipment_cost
 
         # for path in input_path:
         #     pdf_merger.append(path)
@@ -332,8 +330,6 @@ class StockPicking(models.Model):
                 self.carrier_tracking_ref = ','.join(shipment_tracking_number)
                 self.shipstation_service_code = ','.join(service_code)
                 self.carrier_price = total_shipping_cost
-                line = self.sale_id.order_line.filtered(lambda line:line.is_delivery==True)
-                line.price_unit = total_shipping_cost
                 self.is_order_imported_in_shipstation = True
                 self.shipstation_shipment_id = ','.join(shipment_ids)
                 self.shipstation_weight = total_shipstation_weight

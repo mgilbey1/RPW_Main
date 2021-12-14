@@ -94,14 +94,6 @@ class DeliveryCarrier(models.Model):
         weight = sum(
             [(line.product_id.weight * line.product_uom_qty) for line in order.order_line if not line.is_delivery])
         total_weight = self.get_total_weight(weight)
-        length =  self.delivery_package_id and self.delivery_package_id.length or 0.0
-        width = self.delivery_package_id and self.delivery_package_id.width or 0.0
-        height = self.delivery_package_id and self.delivery_package_id.height or 0.0
-        total_volume = sum([line.product_id.volume *line.product_uom_qty for line in order.order_line if line.product_id.volume])
-        if total_volume:
-            height = 1
-            width = 2
-            length = int(total_volume /2)
         dict_rate = {
             "carrierCode": "%s" % (
                     self.shipstation_carrier_id and self.shipstation_carrier_id.code),
@@ -117,9 +109,9 @@ class DeliveryCarrier(models.Model):
             },
             "dimensions": {
                 "units": self.shipstation_dimentions or "inches",
-                "length": length,
-                "width": width,
-                "height": height
+                "length": self.delivery_package_id and self.delivery_package_id.length or 0.0,
+                "width": self.delivery_package_id and self.delivery_package_id.width or 0.0,
+                "height": self.delivery_package_id and self.delivery_package_id.height or 0.0
             },
             "confirmation": self.confirmation or "none",
             "residential": self.shipstation_delivery_carrier_service_id and self.shipstation_delivery_carrier_service_id.residential_address
