@@ -14,10 +14,10 @@
                         </div>
                         <label for="volume"/>
                         <div name="volume">
-                            <span> Length: </span><field name="product_length" style="width:60px" />
-                            <span> Width: </span><field name="product_width" style="width:60px" />
-                            <span> Height: </span><field name="product_height" style="width:60px" /><br/>
-                            <span>Calculated Volume: </span><field name="volume" style="width:60px" /><span> in³</span>
+                            <span> Length: </span><field name="product_length" style="width:45px" />
+                            <span> Width: </span><field name="product_width" style="width:45px" />
+                            <span> Height: </span><field name="product_height" style="width:45px" /><br/>
+                            <span>Calculated Volume: </span><field name="volume" style="width:45px" /><span> in³</span>
                         </div>
                     </group>
                 </xpath>
