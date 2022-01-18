@@ -92,11 +92,9 @@ class DeliveryCarrier(models.Model):
         serder_address = order.warehouse_id.partner_id
         weight = sum([(line.product_id.weight * line.product_uom_qty) for line in order.order_line if not line.is_delivery])
         total_weight = self.get_total_weight(weight)
-        total_item_length = 0.0
-        total_item_width = 0.0
-        total_item_height = 0.0
         total_shipment_volume = 0.0
         for item in order.order_line:
+            line_item_failed = False
             product_rec = self.env['product.product'].browse(item.product_id.id)
             product_tmpl_id = product_rec.product_tmpl_id
             product_tmpl_rec = self.env['product.template'].browse(product_tmpl_id.id)
@@ -118,13 +116,24 @@ class DeliveryCarrier(models.Model):
             # Check if the line item's size is too big for our selected package size.
             if item_package_volume > max_package_volume:
                 # Our item is too big to ship with this method, fail and exit
+                line_item_failed = True
                 return {'success': False, 'price': 0.0, 'error_message': "Not Available",'warning_message': False}
             # add this line item's volume to our total shipment's volume
             total_shipment_volume += item_package_volume * item.product_uom_qty            
         # Check for need to split order into multiple packages
         if max_package_volume > total_shipment_volume:
             package_split = False  
-            # since our shipment's size fits in our regular packaging, we will use the real dimensional data.    
+            # since our shipment's size fits in our regular packaging, we will use the real dimensional data.  
+            if item.product_uom_qty > 1:
+                # Compute volumetric dimensions
+                line_width = round((self.delivery_package_id.width - item_width) / 2, 2)
+                line_length = round((self.delivery_package_id.length - item_length) / 2, 2)
+                total_product_volume = round(item_package_volume * item.product_uom_qty, 2)
+                line_height = round(total_product_volume / (line_width * line_length),2)
+            else:
+                line_width = item_width
+                line_length = item_length
+                line_height = item_height           
             dict_rate = {
                 "carrierCode": "%s" % (self.shipstation_carrier_id and self.shipstation_carrier_id.code),
                 "packageCode": "%s" % (self.delivery_package_id and self.delivery_package_id.package_code),
@@ -139,16 +148,17 @@ class DeliveryCarrier(models.Model):
                 },
                 "dimensions": {
                     "units": self.shipstation_dimensions or "inches",
-                    "length": total_item_length or 1,
-                    "width": total_item_width or 1,
-                    "height": total_item_height or 1
+                    "length": line_length or 1,
+                    "width": line_width or 1,
+                    "height": line_height or 1
                 },
                 "confirmation": self.confirmation or "none",
+                # "residential": True
                 "residential": self.shipstation_delivery_carrier_service_id and self.shipstation_delivery_carrier_service_id.residential_address
             }
-        else:
+        elif line_item_failed == False:
             # package split required - we are going to use the maximum package's size (the one currently set) for our initial cost.
-            package_split = True
+            package_split = True                
             dict_rate = {
                 "carrierCode": "%s" % (self.shipstation_carrier_id and self.shipstation_carrier_id.code),
                 "packageCode": "%s" % (self.delivery_package_id and self.delivery_package_id.package_code),
@@ -163,11 +173,12 @@ class DeliveryCarrier(models.Model):
                 },
                 "dimensions": {
                     "units": self.shipstation_dimensions or "inches",
-                    "length": max_package_length or 1,
-                    "width": max_package_width or 1,
+                    "length": max_package_length or 12,
+                    "width": max_package_width or 15,
                     "height": max_package_height or 1
                 },
                 "confirmation": self.confirmation or "none",
+                # "residential": True
                 "residential": self.shipstation_delivery_carrier_service_id and self.shipstation_delivery_carrier_service_id.residential_address
             }
         try:
@@ -179,6 +190,17 @@ class DeliveryCarrier(models.Model):
                 _logger.info("Response Data: %s" % (responses))
                 self._cr.commit()
                 if responses:
+                    # Do a check to make sure we actually have the shipping method available
+                    ship_method_present = False
+                    for ship_method_available in responses:
+                        ship_method = ship_method_available.get('serviceCode')
+                        if ship_method == self.shipstation_delivery_carrier_service_id.service_code:
+                            ship_method_present = True
+                    # End of check
+                    # Kick it back as an error if not there
+                    if ship_method_present == False:
+                        return {'success': False, 'price': 0.0, 'error_message': "Not Available", 'warning_message': False} 
+                    # Proceed with regular business                       
                     for response in responses:
                         shipping_charge_obj.sudo().create(
                             {'shipstation_provider': self.shipstation_carrier_id.code, 'shipstation_service_code': response.get('serviceCode'),
@@ -187,8 +209,7 @@ class DeliveryCarrier(models.Model):
                              'other_cost': response.get('otherCost', 0.0),
                              'sale_order_id': order and order.id})
                         self._cr.commit()
-                    shipstation_charge_id = self.env['shipstation.shipping.charge'].search(
-                        [('sale_order_id', '=', order and order.id),('shipstation_service_code','=',self.shipstation_delivery_carrier_service_id.service_code)],limit=1)
+                    shipstation_charge_id = self.env['shipstation.shipping.charge'].search([('sale_order_id', '=', order and order.id),('shipstation_service_code','=',self.shipstation_delivery_carrier_service_id.service_code)],limit=1)                        
                     if not shipstation_charge_id:
                         shipstation_charge_id = self.env['shipstation.shipping.charge'].search([('sale_order_id', '=', order and order.id),('shipstation_provider','=',self.shipstation_carrier_id.code)], order='shipping_cost', limit=1)
                         order.shipstation_shipping_charge_id = shipstation_charge_id and shipstation_charge_id.id
@@ -198,13 +219,18 @@ class DeliveryCarrier(models.Model):
                         float(max_package_ship_cost)
                         number_of_packages = total_shipment_volume / max_package_volume
                         package_step_up = math.ceil(number_of_packages)
-                        rate_amount = (max_package_ship_cost * package_step_up) + shipstation_charge_id.other_cost
-                        print("line-break")
+                        # Setup special rule for DHL Smart Expidited
+                        if self.shipstation_carrier_id.code == "dhl_global_mail" and package_step_up > 2:
+                            return {'success': False, 'price': 0.0, 'error_message': "Not Available", 'warning_message': False}
+                        else:
+                            rate_amount = (max_package_ship_cost + shipstation_charge_id.other_cost) * package_step_up
                     else:
                         rate_amount = shipstation_charge_id.shipping_cost + shipstation_charge_id.other_cost
+                    package_split = False
                     return {'success': True, 'price': rate_amount or 0.0,
                             'error_message': False, 'warning_message': False}
                 else:
+                    package_split = False
                     return {'success': False, 'price': 0.0, 'error_message': "Service Not Supported.",
                             'warning_message': False}
             elif response_data.status_code == 500:

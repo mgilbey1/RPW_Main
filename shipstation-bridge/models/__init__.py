@@ -17,4 +17,3 @@ from . import stock_picking
 from . import stock_quant
 from . import product_packaging
 from . import volume
-

@@ -13,9 +13,6 @@ class ProductDimensions(models.Model):
     product_length = fields.Char(string="Length")
     product_width = fields.Char(string="Width")
     product_height = fields.Char(string="Height")
-
-    #product_uom = field.Selection(string='Product Unit of Measure', selection=selection=[('imperial','Imperial'), ('metric', 'Metric')])
-
     
     @api.onchange('product_length', 'product_width', 'product_height')
     def _onchange_lengh_width_height(self):
