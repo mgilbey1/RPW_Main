@@ -17,7 +17,8 @@
                             <span> Length: </span><field name="product_length" style="width:45px" />
                             <span> Width: </span><field name="product_width" style="width:45px" />
                             <span> Height: </span><field name="product_height" style="width:45px" /><br/>
-                            <span>Calculated Volume: </span><field name="volume" style="width:45px" /><span> in³</span>
+                            <span>Calculated Volume: </span><field name="volume" style="width:45px" /><span> in³</span><br/><br/>
+                            <span>Ground Ship Only: </span><field name="product_ground_ship_only" string="Ground Ship Only" />
                         </div>
                     </group>
                 </xpath>

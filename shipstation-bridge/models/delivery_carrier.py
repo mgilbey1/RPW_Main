@@ -2,7 +2,6 @@ import base64
 import json
 import logging
 import time
-import math
 from datetime import datetime
 from requests import request
 from odoo import models, fields, api, _
@@ -54,10 +53,10 @@ class DeliveryCarrier(models.Model):
         for order_line in lines_without_weight:
             return _("Please define weight in product : \n %s") % order_line.product_id.name
         receiver_address = order.partner_shipping_id
-        serder_address = order.warehouse_id.partner_id
+        sender_address = order.warehouse_id.partner_id
         if not receiver_address.zip or not receiver_address.country_id or not receiver_address.city:
             return _("Please define proper receiver address.")
-        if not serder_address.zip or not serder_address.country_id or not serder_address.city:
+        if not sender_address.zip or not sender_address.country_id or not sender_address.city:
             return _("Please define proper receiver address.")
 
         return False
@@ -81,63 +80,116 @@ class DeliveryCarrier(models.Model):
         except Exception as e:
             raise ValidationError(e)
         return response_body
-
+       
     def shipstation_rate_shipment(self, order):
+        try: 
+            # shipstation_charge_id = self.env['shipstation.shipping.charge'].search([('sale_order_id', '=', order and order.id),('shipstation_provider','=',self.shipstation_carrier_id.code)], order='shipping_cost')
+            shipstation_charge_id = self.env['shipstation.shipping.charge'].search([('sale_order_id', '=', order and order.id)])
+            shipstation_charge_id.sudo().unlink()
+        except Exception:
+            self._cr.rollback()  # error, rollback everything atomically
+            print("JCB: SQL Rollback!")
+            # raise
+        finally:
+            self._cr.commit()
+        weight_split = False
+        ground_ship_only = False
         checked_order_data = self.check_order_data(order)
         shipping_charge_obj = self.env['shipstation.shipping.charge']
         if checked_order_data:
-            return {'success': False, 'price': 0.0, 'error_message': checked_order_data,
-                    'warning_message': False}
+            return {'success': False, 'price': 0.0, 'error_message': checked_order_data, 'warning_message': False}
         receiver_address = order.partner_shipping_id
-        serder_address = order.warehouse_id.partner_id
+        sender_address = order.warehouse_id.partner_id
         weight = sum([(line.product_id.weight * line.product_uom_qty) for line in order.order_line if not line.is_delivery])
-        total_weight = self.get_total_weight(weight)
+        # total_weight = float(self.get_total_weight(weight))
+        total_weight = weight
         total_shipment_volume = 0.0
-        for item in order.order_line:
+        for line_item in order.order_line:
             line_item_failed = False
-            product_rec = self.env['product.product'].browse(item.product_id.id)
+            product_rec = self.env['product.product'].browse(line_item.product_id.id)
             product_tmpl_id = product_rec.product_tmpl_id
             product_tmpl_rec = self.env['product.template'].browse(product_tmpl_id.id)
-            if product_tmpl_rec.type == "product":
+            if product_tmpl_rec.type != "service":
+                print("JCB: Service Code: ", self.shipstation_delivery_carrier_service_id.service_code)
                 rec_item_length = product_tmpl_rec.product_length
                 rec_item_width = product_tmpl_rec.product_width
                 rec_item_height = product_tmpl_rec.product_height
-            item_length = float(rec_item_length)
-            item_width = float(rec_item_width)
-            item_height = float(rec_item_height)
-            # Check if package is bigger than can be shipped
-            max_package_length = self.delivery_package_id.length
-            max_package_width = self.delivery_package_id.width
-            max_package_height = self.delivery_package_id.height
-            # Compute the volume of our predefined shipping package (e.g. One Rate Pak)
-            max_package_volume = max_package_length * max_package_width * max_package_height
-            # Compute the volume item
-            item_package_volume = item_length * item_width * item_height
-            # Check if the line item's size is too big for our selected package size.
-            if item_package_volume > max_package_volume:
-                # Our item is too big to ship with this method, fail and exit
-                line_item_failed = True
+                ground_ship_only_check = bool(product_tmpl_rec.product_ground_ship_only)
+                if ground_ship_only_check == True:
+                    ground_ship_only = True
+                item_length = float(rec_item_length)
+                item_width = float(rec_item_width)
+                item_height = float(rec_item_height)
+                # Check if package is bigger than can be shipped
+                max_package_length = self.delivery_package_id.length
+                max_package_width = self.delivery_package_id.width
+                max_package_height = self.delivery_package_id.height
+                if item_length <= 0.0 or item_width <= 0.0 or item_height <= 0.0:
+                    item_length = 0.125
+                    item_width = 0.125
+                    item_height = 0.125
+                # Compute the volume of our predefined shipping package (e.g. One Rate Pak)
+                max_package_volume = max_package_length * max_package_width * max_package_height
+                # Compute the volume item
+                item_package_volume = item_length * item_width * item_height
+                # Check if the line item's size is too big for our selected package size.
+                if item_package_volume > max_package_volume:
+                    # Our item is too big to ship with this method, fail and exit
+                    line_item_failed = True
+                    return {'success': False, 'price': 0.0, 'error_message': "Not Available",'warning_message': False}
+                # add this line item's volume to our total shipment's volume
+                total_shipment_volume += (item_package_volume * line_item.product_uom_qty)
+        if total_shipment_volume > max_package_volume:
+            number_of_packages = total_shipment_volume / max_package_volume
+        else:
+            number_of_packages = 1
+        if self.shipstation_delivery_carrier_service_id.service_code == "fedex_home_delivery" and total_weight > 250:
+            return {'success': False, 'price': 0.0, 'error_message': "Please contact us for a quote.",'warning_message': False}
+        # Check for ground ship only
+        if ground_ship_only == True:
+            if self.shipstation_delivery_carrier_service_id.service_code != "fedex_home_delivery":
                 return {'success': False, 'price': 0.0, 'error_message': "Not Available",'warning_message': False}
-            # add this line item's volume to our total shipment's volume
-            total_shipment_volume += item_package_volume * item.product_uom_qty            
-        # Check for need to split order into multiple packages
-        if max_package_volume > total_shipment_volume:
-            package_split = False  
-            # since our shipment's size fits in our regular packaging, we will use the real dimensional data.  
-            if item.product_uom_qty > 1:
-                # Compute volumetric dimensions
-                line_width = round((self.delivery_package_id.width - item_width) / 2, 2)
-                line_length = round((self.delivery_package_id.length - item_length) / 2, 2)
-                total_product_volume = round(item_package_volume * item.product_uom_qty, 2)
-                line_height = round(total_product_volume / (line_width * line_length),2)
             else:
-                line_width = item_width
-                line_length = item_length
-                line_height = item_height           
+                # continue processing but make sure we have a weight of a lb or more.
+                if total_weight < 2: 
+                    total_weight = 1.5
+                # Check if the weight of our order is over 70lbs
+                if total_weight > 70:
+                    weight_split = True
+        # Check for need to split order into multiple packages if not, continue with regular process
+        if max_package_volume > total_shipment_volume:
+            package_split = False
+            if total_weight < 70:
+                weight_split = False
+            else:
+                weight_split = True 
+            # Single Box  
+            cube_root = total_shipment_volume ** (1./3)
+            line_width = round(cube_root,3)
+            line_length = round(cube_root,3)
+            line_height = round(cube_root,3)
+            total_weight = round(total_weight, 2)
+            # Setup special rule for Smart Economy
+            # Make sure that the package isn't over-weight
+            if self.shipstation_delivery_carrier_service_id.service_code == "smartmail_parcels_expedited":
+                if total_weight <= 1:
+                    total_shipment_volume = max_package_volume
+                    line_width = max_package_width
+                    line_length = max_package_length
+                    line_height = max_package_height
+                    total_weight = round(total_weight, 2)
+                else:
+                    return {'success': False, 'price': 0.0, 'error_message': "Not Available",'warning_message': False}
+            if self.shipstation_delivery_carrier_service_id.service_code == "fedex_smartpost_parcel_select" and total_shipment_volume < 750:
+                cube_root = 750 ** (1./3)
+                line_width = round(cube_root,3)
+                line_length = round(cube_root,3)
+                line_height = round(cube_root,3)
+                total_weight = round(total_weight, 2)
             dict_rate = {
                 "carrierCode": "%s" % (self.shipstation_carrier_id and self.shipstation_carrier_id.code),
                 "packageCode": "%s" % (self.delivery_package_id and self.delivery_package_id.package_code),
-                "fromPostalCode": "%s" % (serder_address.zip),
+                "fromPostalCode": "%s" % (sender_address.zip),
                 "toState": "%s" % (receiver_address.state_id and receiver_address.state_id.code),
                 "toCountry": "%s" % (receiver_address.country_id and receiver_address.country_id.code),
                 "toPostalCode": "%s" % (receiver_address.zip),
@@ -148,21 +200,41 @@ class DeliveryCarrier(models.Model):
                 },
                 "dimensions": {
                     "units": self.shipstation_dimensions or "inches",
-                    "length": line_length or 1,
-                    "width": line_width or 1,
-                    "height": line_height or 1
+                    "length": line_length,
+                    "width": line_width,
+                    "height": line_height,
                 },
                 "confirmation": self.confirmation or "none",
                 # "residential": True
                 "residential": self.shipstation_delivery_carrier_service_id and self.shipstation_delivery_carrier_service_id.residential_address
             }
+            print("JCB: Single Package Dict - ", dict_rate)
         elif line_item_failed == False:
             # package split required - we are going to use the maximum package's size (the one currently set) for our initial cost.
-            package_split = True                
+            package_split = True
+            per_full_package_weight = round(total_weight, 2) / round(number_of_packages, 2)
+            per_weight = round(per_full_package_weight, 2)
+            # Check weight limits and add packages and change max size if needed.
+            if per_weight > 70:
+                weight_split = True
+                per_weight_box_splitting = round(total_weight, 2) / 70  # = 2.792857148571427
+                # Increase the number of packages so that they fit the weight limit.
+                if number_of_packages < per_weight_box_splitting:
+                    number_of_packages = round(per_weight_box_splitting, 2)  # redundant but it keeps us safe.
+                # Calculate new max box size
+                new_package_volume = total_shipment_volume / number_of_packages  # = 
+                new_package_volume = round(new_package_volume, 2)
+                new_box_dimension = new_package_volume ** (1./3)  # = 
+                max_package_length = round(new_box_dimension, 2)
+                max_package_width = round(new_box_dimension, 2)
+                max_package_height = round(new_box_dimension, 2)
+                new_weight = total_weight / number_of_packages
+                total_weight = round(new_weight, 2)
+                
             dict_rate = {
                 "carrierCode": "%s" % (self.shipstation_carrier_id and self.shipstation_carrier_id.code),
                 "packageCode": "%s" % (self.delivery_package_id and self.delivery_package_id.package_code),
-                "fromPostalCode": "%s" % (serder_address.zip),
+                "fromPostalCode": "%s" % (sender_address.zip),
                 "toState": "%s" % (receiver_address.state_id and receiver_address.state_id.code),
                 "toCountry": "%s" % (receiver_address.country_id and receiver_address.country_id.code),
                 "toPostalCode": "%s" % (receiver_address.zip),
@@ -173,22 +245,23 @@ class DeliveryCarrier(models.Model):
                 },
                 "dimensions": {
                     "units": self.shipstation_dimensions or "inches",
-                    "length": max_package_length or 12,
-                    "width": max_package_width or 15,
-                    "height": max_package_height or 1
+                    "length": max_package_length or 1,
+                    "width": max_package_width or 1,
+                    "height": max_package_height or 1,
                 },
                 "confirmation": self.confirmation or "none",
                 # "residential": True
                 "residential": self.shipstation_delivery_carrier_service_id and self.shipstation_delivery_carrier_service_id.residential_address
-            }
+            } 
+            print("JCB: Per Weight Package Dict - ", dict_rate)            
+        # USE API to get rates.
         try:
             response_data = self.api_calling_function("/shipments/getrates", dict_rate)
+            print("JCB: Main Dict - ", dict_rate)
             if response_data.status_code == 200:
                 responses = response_data.json()
-                shipstation_charge_id = self.env['shipstation.shipping.charge'].search([('sale_order_id', '=', order and order.id),('shipstation_provider','=',self.shipstation_carrier_id.code)], order='shipping_cost',) 
-                shipstation_charge_id.sudo().unlink() 
                 _logger.info("Response Data: %s" % (responses))
-                self._cr.commit()
+                print("JCB: Response Data - %s" % (responses))
                 if responses:
                     # Do a check to make sure we actually have the shipping method available
                     ship_method_present = False
@@ -197,10 +270,10 @@ class DeliveryCarrier(models.Model):
                         if ship_method == self.shipstation_delivery_carrier_service_id.service_code:
                             ship_method_present = True
                     # End of check
-                    # Kick it back as an error if not there
+                    # Kick it back as an error if not there                    
                     if ship_method_present == False:
                         return {'success': False, 'price': 0.0, 'error_message': "Not Available", 'warning_message': False} 
-                    # Proceed with regular business                       
+                    # Proceed with regular rate retrieval                   
                     for response in responses:
                         shipping_charge_obj.sudo().create(
                             {'shipstation_provider': self.shipstation_carrier_id.code, 'shipstation_service_code': response.get('serviceCode'),
@@ -209,30 +282,89 @@ class DeliveryCarrier(models.Model):
                              'other_cost': response.get('otherCost', 0.0),
                              'sale_order_id': order and order.id})
                         self._cr.commit()
-                    shipstation_charge_id = self.env['shipstation.shipping.charge'].search([('sale_order_id', '=', order and order.id),('shipstation_service_code','=',self.shipstation_delivery_carrier_service_id.service_code)],limit=1)                        
+                    shipstation_charge_id = self.env['shipstation.shipping.charge'].search([('sale_order_id', '=', order and order.id),('shipstation_service_code','=',self.shipstation_delivery_carrier_service_id.service_code)],limit=1)                
                     if not shipstation_charge_id:
                         shipstation_charge_id = self.env['shipstation.shipping.charge'].search([('sale_order_id', '=', order and order.id),('shipstation_provider','=',self.shipstation_carrier_id.code)], order='shipping_cost', limit=1)
                         order.shipstation_shipping_charge_id = shipstation_charge_id and shipstation_charge_id.id
+                    if weight_split:
+                        weight_split = False
+                        pre_rounded_rate_amount = (shipstation_charge_id.shipping_cost + shipstation_charge_id.other_cost) * round(number_of_packages, 2)
+                        rate_amount = round(pre_rounded_rate_amount, 2)
+                        return {'success': True, 'price': rate_amount or 0.0,'error_message': False, 'warning_message': False} 
                     # Our Package Splitting magic - We are using volumes here.
                     if package_split:
                         max_package_ship_cost = shipstation_charge_id.shipping_cost
                         float(max_package_ship_cost)
-                        number_of_packages = total_shipment_volume / max_package_volume
-                        package_step_up = math.ceil(number_of_packages)
-                        # Setup special rule for DHL Smart Expidited
-                        if self.shipstation_carrier_id.code == "dhl_global_mail" and package_step_up > 2:
+                        # Setup special rules
+                        # If package has more than 2 boxes, deny fedex_2day
+                        if self.shipstation_delivery_carrier_service_id.service_code == "fedex_2day":
+                            if number_of_packages > 2:
+                                return {'success': False, 'price': 0.0, 'error_message': "Not Available", 'warning_message': False}
+                        
+                        # deny package splitting for smartmail packages
+                        if self.shipstation_delivery_carrier_service_id.service_code == "smartmail_parcels_expedited":
                             return {'success': False, 'price': 0.0, 'error_message': "Not Available", 'warning_message': False}
-                        else:
-                            rate_amount = (max_package_ship_cost + shipstation_charge_id.other_cost) * package_step_up
+                        
+                        # Smallest Package Computations
+                        # get the smallest (or last) package and figure out it's dimensional info
+                        full_packages = int(number_of_packages)
+                        full_packages_volume = full_packages * round(max_package_volume, 2)
+                        remaining_volume = round(total_shipment_volume, 2) - round(full_packages_volume, 2)
+                        if remaining_volume > 0:  # make sure we have a remainder
+                            # Get weight per volume
+                            weight_per_volume = total_weight / total_shipment_volume
+                            full_packages_weight = weight_per_volume * full_packages_volume
+                            remaining_weight = total_weight - full_packages_weight
+                            rounded_remaining_weight = round(remaining_weight)                                    
+                            # compute package dimensions
+                            remaining_package_wlh = remaining_volume ** (1./3)
+                            rounded_remaining_package_wlh = round(remaining_package_wlh, 2)
+                            # New dict    
+                            remaining_package_dict = {
+                                "carrierCode": "%s" % (self.shipstation_carrier_id and self.shipstation_carrier_id.code),
+                                "packageCode": "%s" % (self.delivery_package_id and self.delivery_package_id.package_code),
+                                "fromPostalCode": "%s" % (sender_address.zip),
+                                "toState": "%s" % (receiver_address.state_id and receiver_address.state_id.code),
+                                "toCountry": "%s" % (receiver_address.country_id and receiver_address.country_id.code),
+                                "toPostalCode": "%s" % (receiver_address.zip),
+                                "toCity": receiver_address.city,
+                                "weight": {
+                                    "value": rounded_remaining_weight,
+                                    "units": self.weight_uom or "pounds",
+                                },
+                                "dimensions": {
+                                    "units": self.shipstation_dimensions or "inches",
+                                    "length": rounded_remaining_package_wlh or max_package_length,
+                                    "width": rounded_remaining_package_wlh or max_package_width,
+                                    "height": rounded_remaining_package_wlh or max_package_height
+                                },
+                                "confirmation": self.confirmation or "none",
+                                "residential": self.shipstation_delivery_carrier_service_id and self.shipstation_delivery_carrier_service_id.residential_address
+                            }
+                            print("JCB: Remainder Package Dict - ", remaining_package_dict)
+                            remainder_response_data = self.api_calling_function("/shipments/getrates", remaining_package_dict)
+                            if remainder_response_data.status_code == 200:
+                                remainder_json_data = remainder_response_data.json()
+                                remainder_ship_method = self.shipstation_delivery_carrier_service_id.service_code
+                                remainder_package_rate = 0.0
+                                for chunk in remainder_json_data:
+                                    if chunk.get('serviceCode') == remainder_ship_method:
+                                        remainder_shipment_cost = chunk.get('shipmentCost')
+                                        remainder_shipment_other_cost = chunk.get('otherCost')
+                                        remainder_package_rate = remainder_shipment_cost + remainder_shipment_other_cost
+                                rate_amount = ((max_package_ship_cost + shipstation_charge_id.other_cost) * full_packages) + remainder_package_rate
+                            else:
+                                rate_amount = (max_package_ship_cost + shipstation_charge_id.other_cost) * number_of_packages
                     else:
-                        rate_amount = shipstation_charge_id.shipping_cost + shipstation_charge_id.other_cost
-                    package_split = False
-                    return {'success': True, 'price': rate_amount or 0.0,
-                            'error_message': False, 'warning_message': False}
+                        package_split = False
+                        weight_split = False
+                    pre_rounded_rate_amount = shipstation_charge_id.shipping_cost + shipstation_charge_id.other_cost
+                    rate_amount = round(pre_rounded_rate_amount, 2)
+                    return {'success': True, 'price': rate_amount or 0.0,'error_message': False, 'warning_message': False}    
                 else:
                     package_split = False
-                    return {'success': False, 'price': 0.0, 'error_message': "Service Not Supported.",
-                            'warning_message': False}
+                    weight_split = False
+                    return {'success': False, 'price': 0.0, 'error_message': "Not Available", 'warning_message': False}
             elif response_data.status_code == 500:
                 error_message_details = ""
                 if response_data.json():
