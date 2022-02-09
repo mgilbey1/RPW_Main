@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="new_description_for_product" inherit_id="website_sale.product">
+        <xpath expr="//div[@id='product_attributes_simple']" position="before">
+<!--            <hr t-if="product.web_description" />-->
+                 <t t-raw="product.web_description" class="text-muted" />
+<!--            <hr />-->
+        </xpath>
+
+    </template>
+
+</odoo>
