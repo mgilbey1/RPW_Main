@@ -88,8 +88,6 @@ class DeliveryCarrier(models.Model):
             shipstation_charge_id.sudo().unlink()
         except Exception:
             self._cr.rollback()  # error, rollback everything atomically
-            print("JCB: SQL Rollback!")
-            # raise
         finally:
             self._cr.commit()
         weight_split = False
@@ -110,7 +108,6 @@ class DeliveryCarrier(models.Model):
             product_tmpl_id = product_rec.product_tmpl_id
             product_tmpl_rec = self.env['product.template'].browse(product_tmpl_id.id)
             if product_tmpl_rec.type != "service":
-                print("JCB: Service Code: ", self.shipstation_delivery_carrier_service_id.service_code)
                 rec_item_length = product_tmpl_rec.product_length
                 rec_item_width = product_tmpl_rec.product_width
                 rec_item_height = product_tmpl_rec.product_height
@@ -208,7 +205,6 @@ class DeliveryCarrier(models.Model):
                 # "residential": True
                 "residential": self.shipstation_delivery_carrier_service_id and self.shipstation_delivery_carrier_service_id.residential_address
             }
-            print("JCB: Single Package Dict - ", dict_rate)
         elif line_item_failed == False:
             # package split required - we are going to use the maximum package's size (the one currently set) for our initial cost.
             package_split = True
@@ -252,16 +248,13 @@ class DeliveryCarrier(models.Model):
                 "confirmation": self.confirmation or "none",
                 # "residential": True
                 "residential": self.shipstation_delivery_carrier_service_id and self.shipstation_delivery_carrier_service_id.residential_address
-            } 
-            print("JCB: Per Weight Package Dict - ", dict_rate)            
+            }           
         # USE API to get rates.
         try:
             response_data = self.api_calling_function("/shipments/getrates", dict_rate)
-            print("JCB: Main Dict - ", dict_rate)
             if response_data.status_code == 200:
                 responses = response_data.json()
                 _logger.info("Response Data: %s" % (responses))
-                print("JCB: Response Data - %s" % (responses))
                 if responses:
                     # Do a check to make sure we actually have the shipping method available
                     ship_method_present = False
@@ -341,7 +334,6 @@ class DeliveryCarrier(models.Model):
                                 "confirmation": self.confirmation or "none",
                                 "residential": self.shipstation_delivery_carrier_service_id and self.shipstation_delivery_carrier_service_id.residential_address
                             }
-                            print("JCB: Remainder Package Dict - ", remaining_package_dict)
                             remainder_response_data = self.api_calling_function("/shipments/getrates", remaining_package_dict)
                             if remainder_response_data.status_code == 200:
                                 remainder_json_data = remainder_response_data.json()
