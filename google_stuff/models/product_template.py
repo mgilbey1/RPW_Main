@@ -42,7 +42,7 @@ class googleModel(models.Model):
         return full_gtin
 
     def generate_google_id(self, current_rec_id):
-        working_record = self.current_rec_id
+        working_record = current_rec_id
         self._cr.execute('SELECT "google_id", "google_gtin", "googleid_lock", "id" from product_template ORDER BY google_id ASC LIMIT 1;')
         data = self._cr.fetchone()
         google_lock = secrets.token_hex(15)
@@ -63,5 +63,4 @@ class googleModel(models.Model):
             self.google_id = self.generate_google_id(current_record_id)
         if self.google_gtin == 0 or self.google_gtin == "":
             self.google_gtin = self.generate_gtin(self.google_id)
-        
-        
+     
