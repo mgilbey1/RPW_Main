@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+    <record id="view_product_template_google_tab" model="ir.ui.view">
+        <field name="name">product_google_stuff</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+          <xpath expr="//page[@name='inventory']" position="after">
+                <page name="product_google_stuff" string="Google">
+                      <div style="text-align:center">
+                        <button name="update_google_id_and_gtin" string="Generate Gtin and Google ID" type="object" class="oe_highlight" />
+                      </div>
+                    <group name="google_fields_group">
+                      <group name="google_col_left">
+                        <field name="googleid_lock" invisible="1" />
+                        <field name="google_id" readonly="1" />
+                        <field name="google_gtin" readonly="1" />
+                      </group>
+                      <group name="google_col_right">
+                        <h2>Editable Values</h2>
+                        <field name="exclude_from_google_export" string="Exclude from feed" help="If this is turned on (or true) then the product will not be included in the google export." widget="boolean_toggle"/>
+                        <field name="google_brand" string="Brand for Google" help="This is the brand name given to Google" />
+                        <field name="google_category" string="Google Category ID" help="This is a numeric value that is used to specify the google category ID" />
+                      </group>
+                    </group>
+                </page>
+          </xpath>
+        </field>
+    </record>
+  </data>
+</odoo>
