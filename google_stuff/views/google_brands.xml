@@ -1,0 +1,11 @@
+<record id="res_product_form_view_extension" model="ir.ui.view">
+            <field name="name">res.product.form.view.extension</field>
+            <field name="inherit_id" ref="base.view_product_form"/>
+            <field name="model">res.product</field>
+            <field name="priority" eval="2"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='lang']" position="after">
+                    <field name="brand"/>
+                </xpath>
+            </field>
+        </record>
