@@ -12,17 +12,16 @@
                       <group name="google_col_left">
                       <h2>Actions: </h2>
                       <p style="text-align:center">
-                        <button name="update_google_id_and_gtin" string="Generate Gtin &amp; Google ID" type="object" class="btn btn-primary" /><br/><br/>
-                        <div class="alert alert-warning" style="text-align:left">The following button should <strong>ONLY</strong> be used if you know what you are doing!<br/><br/>
-                        <button name="reset_gtin" string="Assign new Gtin &amp; Google ID" type="object" class="btn btn-danger" confirm="WARNING: Doing this may cause mismatched data in the Google feed. Continue?" />
+                        <button name="new_google_id_and_gtin" string="Generate Gtin &amp; Google ID" type="object" class="oe_edit_only btn btn-primary" /><br/><br/>
+                        <div class="oe_edit_only alert alert-warning" style="text-align:left">The following button should <strong>ONLY</strong> be used if you know what you are doing!<br/><br/>
+                        <button name="update_google_id_and_gtin" string="Assign new Gtin &amp; Google ID" type="object" class="oe_edit_only btn btn-dark" />
                         </div>
                       </p>
                       </group>
                       <group name="google_col_right">
                         <h2>Non-Editable Values: </h2>
-                        <field name="googleid_lock" invisible="1" />
-                        <field name="google_id" readonly="1" />
-                        <field name="google_gtin" readonly="1" />
+                        <field name="google_id" />
+                        <field name="google_gtin" />
                         <h2><br/>Editable Values: </h2>
                         <field name="google_brand" widget="selection"/>
                         <field name="google_category" string="Google Category ID" help="This is a numeric value that is used to specify the google category ID" />
@@ -30,7 +29,7 @@
                         <field name="exclude_from_google_export" string="Exclude from feed" help="If this is turned on (or true) then the product will not be included in the google export." widget="boolean_toggle"/>
                       </group>
                     </group>
-                <div>Google Category IDs: <a href="https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt">https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt</a></div>
+                <div>Google Category IDs: <a href="https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt" target="_blank">https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt</a></div>
                 </page>
           </xpath>
         </field>

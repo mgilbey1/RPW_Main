@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, _
+from odoo import models, fields, api
 import math
-import secrets
 
-class googleModel(models.Model):
+class GoogleModel(models.Model):
     _inherit = 'product.template'
     # define our fields    
     exclude_from_google_export = fields.Boolean("Do NOT include in Google feed", default=False)
-    googleid_lock = fields.Char("Google Lock")
     google_id = fields.Integer("Google ID")
     google_gtin = fields.Char("Google GTIN UPC")
-    google_category = fields.Integer("Google Category ID number.")
+    google_category = fields.Integer("Google Category ID number.", default='604')
     ge = 'General Electric (GE)'
     google_brand = fields.Selection([
         ('Affresh', 'Affresh'),
@@ -61,7 +59,6 @@ class googleModel(models.Model):
         ('Samsung','Samsung'),
         ('Sanyo','Sanyo'),
         ('Secop / Nidec','Secop / Nidec'),
-        ('Secop / Nidec','Secop / Nidec'),
         ('Sharp','Sharp'),
         ('Sole','Sole'),
         ('Southeast Specialties','Southeast Specialties'),
@@ -107,33 +104,22 @@ class googleModel(models.Model):
         # put gtin together
         full_gtin = prefix + product_id_string.zfill(7) + str(check_digit)
         return full_gtin
-
-    def generate_google_id(self, current_rec_id):
-        working_record = current_rec_id
-        self._cr.execute('SELECT "google_id", "google_gtin", "googleid_lock", "id" from product_template ORDER BY google_id ASC LIMIT 1;')
-        data = self._cr.fetchone()
-        google_lock = secrets.token_hex(15)
-        last_google_id = data[0]
-        last_google_lock = data[2]
-        last_record_id = data[3]
-        if last_google_lock == "" or last_google_lock == 0 or last_google_lock is None:
-            if last_google_id is None:
-                last_google_id = 0
-            new_google_id = last_google_id + 1
-            print("SQL:")
-            print(f'UPDATE product_template SET googleid_lock = "{google_lock}" WHERE id = {last_record_id}; UPDATE product_template SET google_id = "{new_google_id}" WHERE id = {working_record};')
-            # self._cr.execute(f'UPDATE product_template SET google_lock = "{google_lock}" WHERE id = {last_record_id}; UPDATE product_template SET google_id = "{new_google_id}" WHERE id = {current_rec_id};')
-            return new_google_id
     
-    def update_google_id_and_gtin(self):
-        current_record_id = int(self.id)
-        if self.google_id == 0 or self.google_id == "":  
-            self.google_id = self.generate_google_id(current_record_id)
-        if self.google_gtin == 0 or self.google_gtin == "":
+    def new_google_id_and_gtin(self):
+        if self.google_id == 0:
+            new_result_google_id = self.env['product.template'].search([('google_id', '!=', 0)], order='google_id desc', limit=1)
+            new_id_num = int(new_result_google_id[0])
+            new_google_id = new_id_num + 1
+            self.google_id = new_google_id
             self.google_gtin = self.generate_gtin(self.google_id)
-            
-    def reset_gtin(self):
-        current_record_id = int(self.id)
-        self.google_id = self.generate_google_id(current_record_id)
+        return
+    
+    @api.onchange('self.google_id')    
+    def update_google_id_and_gtin(self):
+        self.env.cr.execute("""select google_id from product_template order by google_id desc nulls last limit 1""")
+        update_result_google_id = self.env.cr.fetchone()
+        update_id_num = int(update_result_google_id[0])
+        update_google_id = update_id_num + 1
+        self.google_id = update_google_id
         self.google_gtin = self.generate_gtin(self.google_id)
-     
+        return
