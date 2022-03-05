@@ -29,6 +29,7 @@ class ProductBrand(models.Model):
 
 class BrandProduct(models.Model):
     _name = 'product.brand'
+    _description = 'Brand Name'
 
     name = fields.Char("Name")
     brand_image = fields.Binary()
