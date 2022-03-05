@@ -10,18 +10,16 @@
                 <page name="product_google_stuff" string="Google">
                     <group name="google_fields_group">
                       <group name="google_col_left">
-                      <h2>Actions: </h2>
-                      <p style="text-align:center">
-                        <button name="new_google_id_and_gtin" string="Generate Gtin &amp; Google ID" type="object" class="oe_edit_only btn btn-primary" /><br/><br/>
-                        <div class="oe_edit_only" style="padding:8px; text-align:left;background-color:#F5F39E; text-color:#000000;"><strong>WARNING: </strong>The following button should <strong>ONLY</strong> be used if you know what you are doing!<br/><br/>
-                        <div style="text-align:center"><button name="update_google_id_and_gtin" string="Assign new Gtin &amp; Google ID" type="object" class="oe_edit_only btn btn-dark"  confirm="WARNING: re-assigning a new GTIN and google ID may cause discrepencies with the data already given to google. Are you sure you want to continue?"/></div>
+                      <h2>Actions: </h2>        
+                        <div class="oe_edit_only" style="padding:8px; text-align:left;background-color:#F5F39E;color:#000000;"><strong>WARNING: </strong>The following button should <strong>ONLY</strong> be used if you know what you are doing!<br/><br/>
+                        <div style="text-align:center"><button name="update_google_id_and_gtin" string="Save / Generate New Gtin &amp; Google ID" type="object" class="oe_edit_only btn btn-dark" /></div>
                         </div>
-                      </p>
                       </group>
                       <group name="google_col_right">
                         <h2>Non-Editable Values: </h2>
                         <field name="google_id" readonly="1" />
                         <field name="google_gtin" readonly="1" />
+                        <field name="save_field" string="Record State" readonly="1" widget="html" />
                         <h2><br/>Editable Values: </h2>
                         <field name="google_brand" widget="selection"/>
                         <field name="google_category" string="Google Category ID" help="This is a numeric value that is used to specify the google category ID" />
