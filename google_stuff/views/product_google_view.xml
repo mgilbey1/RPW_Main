@@ -14,7 +14,7 @@
                       <p style="text-align:center">
                         <button name="new_google_id_and_gtin" string="Generate Gtin &amp; Google ID" type="object" class="oe_edit_only btn btn-primary" /><br/><br/>
                         <div class="oe_edit_only alert alert-warning" style="text-align:left">The following button should <strong>ONLY</strong> be used if you know what you are doing!<br/><br/>
-                        <button name="update_google_id_and_gtin" string="Assign new Gtin &amp; Google ID" type="object" class="oe_edit_only btn btn-dark" />
+                        <button name="update_google_id_and_gtin" string="Assign new Gtin &amp; Google ID" type="object" class="oe_edit_only btn btn-dark"  confirm="WARNING: re-assigning a new GTIN and google ID may cause discrepencies with the data already given to google. Are you sure you want to continue?"/>
                         </div>
                       </p>
                       </group>
