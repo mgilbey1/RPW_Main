@@ -16,7 +16,7 @@
     # Check https://github.com/odoo/odoo/blob/14.0/odoo/addons/base/data/ir_module_category_data.xml
     # for the full list
     'category': 'Website',
-    'version': '1.005.220305r',
+    'version': '1.026.220305b',
 
     # any module necessary for this one to work correctly
     'depends': ['delivery', 'sale', 'base', 'stock'],
