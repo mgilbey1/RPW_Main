@@ -114,7 +114,7 @@ class GoogleModel(models.Model):
             self.google_gtin = self.generate_gtin(self.google_id)
         return
     
-    @api.onchange('self.google_id')    
+    @api.onchange('google_id')    
     def update_google_id_and_gtin(self):
         self.env.cr.execute("""select google_id from product_template order by google_id desc nulls last limit 1""")
         update_result_google_id = self.env.cr.fetchone()
