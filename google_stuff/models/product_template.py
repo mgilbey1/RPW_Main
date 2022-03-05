@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, api
+from odoo import models, fields
 import math
 
 class GoogleModel(models.Model):
@@ -9,6 +9,7 @@ class GoogleModel(models.Model):
     google_id = fields.Integer("Google ID")
     google_gtin = fields.Char("Google GTIN UPC")
     google_category = fields.Integer("Google Category ID number.", default='604')
+    save_field = fields.Char("Record State", default="<font color='#FF0000'>&lt;&lt;&lt;<strong> NOT SAVED! </strong>&gt;&gt;&gt;</font>")
     ge = 'General Electric (GE)'
     google_brand = fields.Selection([
         ('Affresh', 'Affresh'),
@@ -104,22 +105,13 @@ class GoogleModel(models.Model):
         # put gtin together
         full_gtin = prefix + product_id_string.zfill(7) + str(check_digit)
         return full_gtin
-    
-    def new_google_id_and_gtin(self):
-        if self.google_id == 0:
-            new_result_google_id = self.env['product.template'].search([('google_id', '!=', 0)], order='google_id desc', limit=1)
-            new_id_num = int(new_result_google_id[0])
-            new_google_id = new_id_num + 1
-            self.google_id = new_google_id
-            self.google_gtin = self.generate_gtin(self.google_id)
-        return
-    
-    @api.onchange('google_id')    
+     
     def update_google_id_and_gtin(self):
         self.env.cr.execute("""select google_id from product_template order by google_id desc nulls last limit 1""")
         update_result_google_id = self.env.cr.fetchone()
         update_id_num = int(update_result_google_id[0])
         update_google_id = update_id_num + 1
         self.google_id = update_google_id
-        self.google_gtin = self.generate_gtin(self.google_id)
+        self.google_gtin = self.generate_gtin(self.google_id)        
+        self.save_field = "[Record Saved]"
         return
