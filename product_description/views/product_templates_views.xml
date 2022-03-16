@@ -9,8 +9,8 @@
             <field name="inherit_id" ref="product.product_template_only_form_view" />
             <field name="arch" type="xml">
                 <xpath expr="//group[@name='product_template_images']" position="after">
-                    <group string="Website Description" name="website_description">
-                         <field name="web_description" nolabel="1" placeholder="This description will show up on website as product description."/>
+                    <group string="Website Descriptions" name="website_description">
+                        <field name="web_description" widget="html" placeholder="This description will show up on website as product description."/>
                     </group>
                 </xpath>
             </field>
