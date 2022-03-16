@@ -24,7 +24,7 @@
                     <sheet>
                         <field name="brand_image"  widget="image" class="oe_avatar"/>
                         <div class="oe_title">
-                            <label for="name" class="oe_edit_only" string="Brand Name"/>
+                            <label for="name" class="oe_edit_only" string="Manufacturer Name"/>
                             <h1>
                                 <field name="name"/>
                             </h1>
@@ -68,15 +68,15 @@
             <field name="inherit_id" ref="product.product_template_search_view"/>
             <field name="arch" type="xml">
                 <xpath expr="//search" position="inside">
-                      <filter string="Brand" name="Brand" context="{'group_by':'brand_id'}"/>
+                    <filter string="Manufacturer" name="Brand" context="{'group_by':'brand_id'}"/>
                 </xpath>
             </field>
         </record>
 
-         <menuitem id="product_brand_inventory"
-                   name="Product Brands"
-                   action="product_brand_action"
-                   parent="stock.menu_stock_inventory_control"
-                   sequence="2"/>
+        <menuitem id="product_brand_inventory"
+        name="Product Manufacturers"
+        action="product_brand_action"
+        parent="stock.menu_stock_inventory_control"
+        sequence="2"/>
     </data>
 </odoo>
