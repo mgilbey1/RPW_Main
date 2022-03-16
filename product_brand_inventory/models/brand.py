@@ -25,12 +25,12 @@ from odoo import models,fields,api
 class ProductBrand(models.Model):
     _inherit = 'product.template'
 
-    brand_id = fields.Many2one('product.brand',string='Brand')
+    brand_id = fields.Many2one('product.brand',string='Manufacturer')
 
 
 class BrandProduct(models.Model):
     _name = 'product.brand'
-    _description = 'Brand Name'
+    _description = 'Manufacturer Name'
 
     name = fields.Char(String="Name")
     brand_image = fields.Binary()
@@ -44,4 +44,4 @@ class BrandProduct(models.Model):
 class BrandReportStock(models.Model):
     _inherit = 'stock.quant'
 
-    brand_id = fields.Many2one(related='product_id.brand_id', string='Brand', store=True, readonly=True)
+    brand_id = fields.Many2one(related='product_id.brand_id', string='Manufacturer', store=True, readonly=True)
