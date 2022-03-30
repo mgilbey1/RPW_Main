@@ -20,7 +20,7 @@
 ###################################################################################
 {
     'name': 'Product Brand in Inventory',
-    'version': '1.18.22330',
+    'version': '1.23.220330',
     'category': 'Warehouse',
     'summary': 'Product Brand in Inventory',
     'author': 'Cybrosys Techno Solutions',
