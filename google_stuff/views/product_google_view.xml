@@ -17,7 +17,7 @@
                       </group>
                       <group name="google_col_right">
                         <h2>Non-Editable Values: </h2>
-                        <field name="google_id" readonly="1" />
+                        <field name="google_id" readonly="1" options="{'format': 0}" />
                         <field name="google_gtin" readonly="1" />
                         <field name="save_field" string="Record State" readonly="1" widget="html" />
                         <h2><br/>Editable Values: </h2>
