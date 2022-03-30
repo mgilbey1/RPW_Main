@@ -73,10 +73,6 @@
             </field>
         </record>
 
-        <menuitem id="product_brand_inventory"
-        name="Product Manufacturers"
-        action="product_brand_action"
-        parent="stock.menu_stock_inventory_control"
-        sequence="2"/>
+        <menuitem id="product_brand_inventory" name="Product Manufacturers" action="product_brand_action"  parent="stock.menu_stock_inventory_control" sequence="2"/>
     </data>
 </odoo>

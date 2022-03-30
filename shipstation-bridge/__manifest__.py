@@ -1,6 +1,6 @@
 {
     'name': 'Shipstation Bridge',
-    'version': '01.5.020922',
+    'version': '01.5.22330',
     'author': "John Beck",
     'price': '400',
     'currency': 'USD',
